@@ -2,10 +2,10 @@
 https://discord.com/developers/docs/topics/oauth2
 """
 
-from enum import Enum
+from enum import StrEnum
 
 
-class Scope(Enum):
+class Scope(StrEnum):
     ACTIVITIES_READ = 'activities.read'
     ACTIVITIES_WRITE = 'activities.write'
     APPLICATIONS_BUILDS_READ = 'applications.builds.read'
