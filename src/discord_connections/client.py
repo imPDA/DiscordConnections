@@ -31,7 +31,7 @@ class DiscordConnections:
         Returns auth link and UUID (in string) to check if response is correct
         """
 
-        scope = ' '.join(map(str, [Scope.ROLE_CONNECTION_WRITE, Scope.IDENTIFY, *(add_scopes or [])]))
+        scope = ' '.join(map(str, [Scope.ROLE_CONNECTIONS_WRITE, Scope.IDENTIFY, *(add_scopes or [])]))
 
         state = str(uuid.uuid4())
         query = {
