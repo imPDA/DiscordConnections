@@ -7,7 +7,7 @@ dynamic = ["version"]
 name = "discord-connections"
 dependencies = [
   "httpx~=0.25.2",
-
+  "pydantic~=2.5.2"
 ]
 authors = [
   {name = "Dmitry Patrushev", email = "impda@mail.ru"},
