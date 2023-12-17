@@ -8,7 +8,7 @@ With this repository you can create your own Connection!
 
 ### Installation
 ```shell
-pip install git+https://github.com/imPDA/discord_connections.git@latest
+pip install git+https://github.com/imPDA/discordconnections.git@latest
 ```
 
 [//]: # (_Replace `latest` with any other version number if you need_)
