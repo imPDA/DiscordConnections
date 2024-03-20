@@ -5,8 +5,8 @@ from urllib.parse import urlencode
 import httpx
 import json
 
-from .datatypes import DiscordToken, Metadata, MetadataField, Scope
-from .exceptions import RequestError
+from datatypes import DiscordToken, Metadata, MetadataField, Scope
+from exceptions import RequestError
 
 
 class DiscordConnections:
@@ -16,6 +16,7 @@ class DiscordConnections:
         self.client_secret = client_secret
         self.discord_token = discord_token
 
+    # TODO headers and data to kwargs
     async def _request(self, method: str, url: str, headers: dict, data: dict = None) -> dict:
         async with httpx.AsyncClient() as client:
             response = await client.request(method, url, data=data, headers=headers)
