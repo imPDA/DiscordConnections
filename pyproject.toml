@@ -1,28 +1,30 @@
-[build-system]
-requires = ["hatchling"]
-build-backend = "hatchling.build"
-
-[project]
-dynamic = ["version"]
+[tool.poetry]
 name = "discord-connections"
-dependencies = [
-  "httpx~=0.27.0",
-  "pydantic~=2.6.4"
-]
+version = "0.1.1"
 authors = [
-  {name = "Dmitry Patrushev", email = "impda@mail.ru"},
+  "Dmitry Patrushev <impda@mail.ru>"
 ]
 maintainers = [
-  {name = "Dmitry Patrushev", email = "impda@mail.ru"},
+  "Dmitry Patrushev <impda@mail.ru>"
 ]
-description = "Simple client for creating Discord Connections"
+description = "API to simplify creation of Discord connections on Python"
 readme = "README.md"
-license = {file = "LICENSE"}
-keywords = ["discord", "linked roles", "connections", "api"]
-#Homepage = "https://example.com"
+license = "MIT"
+keywords = ["discord", "api", "connections", "linked roles"]
+homepage = "https://github.com/imPDA/DiscordConnections"
+packages = [
+  { include = "discord_connections" }
+]
+exclude = [
+  "examples",
+  "tests"
+]
 
-[tool.hatch.version]
-path = "src/discord_connections/__init__.py"
+[tool.poetry.dependencies]
+python = "^3.11"
+httpx = "^0.27.0"
+pydantic = "^2.6.3"
 
-[tool.hatch.build.targets.wheel]
-packages = ["src/discord_connections"]
+[build-system]
+requires = ["poetry-core", "setuptools"]
+build-backend = "poetry.core.masonry.api"
