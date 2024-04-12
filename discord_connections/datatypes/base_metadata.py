@@ -1,17 +1,19 @@
 import json
 import re
-from datetime import datetime
 
-from typing import Optional, Any
+from typing import Optional, Any, TypeVar, Generic, get_args, Type
 
-from pydantic import BaseModel, Field, field_validator, ConfigDict
+from pydantic import BaseModel, Field, field_validator, ConfigDict, model_validator
 
-from field_types import IntGe, DtGe, BoolEq
+from .field_types import IntGe, DtGe, BoolEq, IntLe, DtLe, IntEq, IntNe, BoolNe
+from .exceptions import TooManyFieldsException
+
+FieldType = TypeVar('FieldType', IntLe, IntGe, IntEq, IntNe, DtLe, DtGe, BoolEq, BoolNe)
 
 
-class MetadataField(BaseModel):
+class MetadataField(BaseModel, Generic[FieldType]):
     key: str
-    value: Optional[Any] = None
+    value: Optional[FieldType] = Field(default=None)
     name: str
     name_localizations: Optional[dict] = Field(default=None)
     description: str
@@ -51,50 +53,71 @@ class BaseMetadata(BaseModel):
     platform_name: str = Field(...)
     platform_username: str = Field(default=None)
 
-    model_config = ConfigDict(ser_json_timedelta='iso8601')
-
-    @classmethod
-    def to_schema(cls) -> json:
-        fields = []
-        for field_name, field_info in cls.model_fields.items():
-            if isinstance(field_info.default, MetadataField):
-                fields.append({
-                    "type": field_info.annotation.type,
-                    **field_info.default.model_dump()
-                })
-
-        return json.dumps(fields)
-
-
-if __name__ == "__main__":
-    class ActualMetadata(BaseMetadata):
-        platform_name: str = "actual"
-        concrete_field: IntGe = MetadataField(
-            key='cf1',
-            name='concrete_field_1',
-            description='concrete_field_1_description'
-        )
-        other_concrete_field: DtGe = MetadataField(
-            key='cf2',
-            name='concrete_field_2',
-            description='concrete_field_2_description'
-        )
-        another_concrete_field: BoolEq = MetadataField(
-            key='cf3',
-            name='concrete_field_3',
-            description='concrete_field_3_description'
-        )
-
-    # print(ActualMetadata.to_schema())
-
-    a = ActualMetadata(
-        platform_name="asd",
-        concrete_field=12,
-        other_concrete_field=datetime.now(),
+    model_config = ConfigDict(
+        ser_json_timedelta='iso8601',
+        arbitrary_types_allowed=True
     )
 
-    print(a.concrete_field.value)
+    @model_validator(mode='before')
+    @classmethod
+    def rewrite_values(cls, data: Any):
+        # 1) Actual check for amount of metadata fields
+        # Must be <= 5 according to Discord docs
+        amount_of_metadata_fields = sum(
+            1 if issubclass(field_info.annotation, MetadataField) else 0
+            for field_info in cls.model_fields.values()
+        )
+        if amount_of_metadata_fields > 5:
+            raise TooManyFieldsException(amount_of_metadata_fields)
 
-    # print(a.another_concrete_field)
+        # 2) Not actual check
+        # Initialization of values for metadata fields
+        for field_name, field_info in cls.model_fields.items():
+            if not issubclass(field_info.annotation, MetadataField):
+                continue  # do nothing with non-metadata fields
 
-    # print(a.model_dump_json(exclude_none=True))
+            if field_name not in data:
+                continue  # do nothing with empty values
+
+            metadata_field = field_info.annotation(
+                **field_info.default.model_dump(exclude_none=True),
+                value=data.get(field_name)
+            )
+            # ugly, need to think about better solution
+
+            data[field_name] = metadata_field
+
+        return data
+
+    @classmethod
+    def to_schema(cls) -> str:
+        """Returns a schema of fields as a json string.
+        """
+        fields = []
+        for field_name, field_info in cls.model_fields.items():
+            if not issubclass(field_info.annotation, MetadataField):
+                # skip non-metadata fields, they should not be present in schema
+                continue
+
+            def get_type_of_metadata_field(metadata_model: Type[MetadataField]):
+                # Get annotation of field 'value'
+                annotation = metadata_model.model_fields['value'].annotation
+                # Function get_args(annotation) will produce tuple like
+                # (x, NoneType) because `value` field is optional, and it
+                # can be represented as Union[x, None]. Just in case it will
+                # change somehow, I will not check first element of tuple
+                # straight, but check all arguments ...
+                for arg in get_args(annotation):
+                    # ... and find one which corresponds to my custom class
+                    # IntX, DtX or BoolX (they are all listed in FieldType
+                    # constraints).
+                    if arg in FieldType.__constraints__:
+                        # Return class field `type`.
+                        return arg.type
+
+            fields.append({
+                "type": get_type_of_metadata_field(field_info.annotation),
+                **field_info.default.model_dump(exclude_none=True, mode="json")
+            })
+
+        return json.dumps(fields)

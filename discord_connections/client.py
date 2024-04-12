@@ -1,25 +1,37 @@
 import uuid
-from datetime import datetime, timedelta
 from urllib.parse import urlencode
 
 import httpx
-import json
 
-from datatypes import DiscordToken, Metadata, MetadataField, Scope
-from exceptions import RequestError
+from .datatypes import DiscordToken, BaseMetadata, Scope
+from .exceptions import RequestError
+
+
+API_URL = "https://discord.com/api/"
+OAUTH_URL = API_URL + "/oauth2"
+AUTH_URL = OAUTH_URL + "/authorize"
+TOKEN_URL = OAUTH_URL + "/token"
+ME_URL = OAUTH_URL + "/@me"
+ROLE_CONNECTION_URL = ME_URL + "applications/%d/role-connection"
 
 
 class DiscordConnections:
-    def __init__(self, client_id: int | str, redirect_uri: str, client_secret: str, discord_token: str):
+    def __init__(
+            self, client_id: int | str, redirect_uri: str, client_secret: str, discord_token: str
+    ) -> None:
         self.client_id = int(client_id)
         self.redirect_uri = redirect_uri
         self.client_secret = client_secret
         self.discord_token = discord_token
 
+        self.role_connection_url = ROLE_CONNECTION_URL % self.client_id
+
     # TODO headers and data to kwargs
-    async def _request(self, method: str, url: str, headers: dict, data: dict = None) -> dict:
+    async def _request(
+            self, method: str, url: str, *, headers: dict, **kwargs
+    ) -> dict:
         async with httpx.AsyncClient() as client:
-            response = await client.request(method, url, data=data, headers=headers)
+            response = await client.request(method, url, headers=headers, **kwargs)
 
             if response.status_code != 200:
                 raise RequestError(response.status_code, response.text)
@@ -44,12 +56,13 @@ class DiscordConnections:
             'prompt': 'consent',
         }
 
-        url = f'https://discord.com/api/oauth2/authorize?{urlencode(query)}'
+        # url = f'https://discord.com/api/oauth2/authorize?{urlencode(query)}'
+        url = f'{AUTH_URL}?{urlencode(query)}'
 
         return url, state
 
     async def get_oauth_token(self, code: str) -> DiscordToken:
-        URL = 'https://discord.com/api/v10/oauth2/token'
+        # URL = 'https://discord.com/api/v10/oauth2/token'
 
         headers = {
             'Content-Type': 'application/x-www-form-urlencoded',
@@ -62,11 +75,11 @@ class DiscordConnections:
             'redirect_uri': self.redirect_uri,
         }
 
-        token_data = await self._request('POST', URL, headers, data)
+        token_data = await self._request('POST', TOKEN_URL, headers=headers, data=data)
         return DiscordToken(**token_data)
 
     async def refresh_token(self, token: DiscordToken) -> DiscordToken:
-        URL = 'https://discord.com/api/v10/oauth2/token'
+        # URL = 'https://discord.com/api/v10/oauth2/token'
 
         headers = {
             'Content-Type': 'application/x-www-form-urlencoded',
@@ -78,46 +91,53 @@ class DiscordConnections:
             'refresh_token': token.refresh_token,
         }
 
-        token_data = await self._request('POST', URL, headers, data)
+        token_data = await self._request('POST', TOKEN_URL, headers=headers, data=data)
         return DiscordToken(**token_data)
 
     async def get_user_data(self, token: DiscordToken) -> dict:
-        URL = 'https://discord.com/api/v10/oauth2/@me'
+        # URL = 'https://discord.com/api/v10/oauth2/@me'
         headers = {
             'Authorization': f'Bearer {token.access_token}',
         }
 
-        user_data = await self._request('GET', URL, headers)
+        user_data = await self._request('GET', ME_URL, headers=headers)
         return user_data
 
-    async def push_metadata(self, token: DiscordToken, metadata: Metadata) -> None:
-        URL = f'https://discord.com/api/v10/users/@me/applications/{self.client_id}/role-connection'
+    async def push_metadata(self, token: DiscordToken, metadata: BaseMetadata) -> None:
+        # URL = f'https://discord.com/api/v10/users/@me/applications/{self.client_id}/role-connection'
+        URL = self.role_connection_url
 
         headers = {
             'Authorization': f'Bearer {token.access_token}',
             'Content-Type': 'application/json',
         }
 
-        await self._request('PUT', URL, headers, data=json.dumps(metadata.to_dict()))  # noqa
+        await self._request(
+            'PUT', URL, headers=headers, json=metadata.model_dump_json(exclude_none=True)
+        )
 
     async def get_metadata(self, token: DiscordToken) -> dict:
-        URL = f'https://discord.com/api/v10/users/@me/applications/{self.client_id}/role-connection'
+        # URL = f'https://discord.com/api/v10/users/@me/applications/{self.client_id}/role-connection'
+        URL = self.role_connection_url
 
         headers = {
             'Authorization': f'Bearer {token.access_token}',
         }
 
-        return await self._request('GET', URL, headers)
+        return await self._request('GET', URL, headers=headers)
 
-    async def register_metadata_schema(self, metadata: Metadata) -> dict:
-        URL = f'https://discord.com/api/v10/applications/{self.client_id}/role-connections/metadata'
+    async def register_metadata_schema(self, metadata: BaseMetadata) -> dict:
+        # URL = f'https://discord.com/api/v10/applications/{self.client_id}/role-connections/metadata'
+        URL = self.role_connection_url + "/metadata"
 
         headers = {
             'Content-Type': 'application/json',
             'Authorization': f'Bot {self.discord_token}',
         }
 
-        return await self._request('PUT', URL, headers, data=json.dumps(metadata.to_schema()))  # noqa
+        return await self._request(
+            'PUT', URL, headers=headers, json=metadata.to_schema()
+        )
 
 
 Client = DiscordConnections
