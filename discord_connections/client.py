@@ -108,7 +108,7 @@ class DiscordConnections:
         }
 
         await self._request(
-            'PUT', ROLE_CONNECTIONS_METADATA_URL.format(applciation_id=self.client_id),
+            'PUT', ROLE_CONNECTIONS_METADATA_URL.format(application_id=self.client_id),
             headers=headers, json=metadata.model_dump_json(exclude_none=True)
         )
 
@@ -118,7 +118,7 @@ class DiscordConnections:
         }
 
         return await self._request(
-            'GET', ROLE_CONNECTIONS_METADATA_URL.format(applciation_id=self.client_id),
+            'GET', ROLE_CONNECTIONS_METADATA_URL.format(application_id=self.client_id),
             headers=headers
         )
 
