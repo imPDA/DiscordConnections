@@ -1,4 +1,4 @@
-from .tokens import DiscordToken
+from .tokens import Token
 from .scopes import Scope
 from .field_types import *
-from .base_metadata import MetadataField, BaseMetadata
+from .base_metadata import MetadataField, BaseMetadataModel

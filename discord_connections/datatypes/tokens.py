@@ -1,24 +1,18 @@
+from dataclasses import dataclass
 from datetime import timedelta, datetime
-from typing import Optional, Self
-
-from pydantic import BaseModel, model_validator
+from typing import Self
 
 
-class DiscordToken(BaseModel):
+@dataclass(frozen=True)
+class Token:
     access_token: str
     refresh_token: str
-    expires_in: timedelta
-    expires_at: Optional[datetime] = None
+    expires_at: datetime
 
-    @model_validator(mode='after')
-    def set_expires_at(self) -> Self:
-        if not self.expires_at:
-            self.expires_at = datetime.now() + self.expires_in
-        return self
-
-    @property
-    def expired(self):
-        return datetime.now() > self.expires_at
-
-
-# TODO TZ awareness?
+    @classmethod
+    def from_token_response(cls, response: dict) -> Self:
+        return Token(
+            access_token=response['access_token'],
+            refresh_token=response['refresh_token'],
+            expires_at=datetime.now() + timedelta(seconds=response['expires_in'])
+        )

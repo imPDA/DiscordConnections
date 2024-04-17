@@ -4,7 +4,7 @@ from typing import Type, Union, List, Tuple, Any, Optional
 import pytest
 from pydantic import create_model
 
-from datatypes.base_metadata import MetadataField, BaseMetadata
+from datatypes.base_metadata import MetadataField, BaseMetadataModel
 from datatypes.field_types import *
 
 MetadataFieldType = Union[
@@ -41,7 +41,7 @@ def create_one_field(type_, name: str) -> dict:
 def create_test_metadata_model(
         *, name: str = None, metadata_fields: List[Tuple[MetadataFieldType, Any]] = None,
         platform_name: str = "Test", platform_username: str = None
-) -> Type[BaseMetadata]:
+) -> Type[BaseMetadataModel]:
     if not metadata_fields:
         metadata_fields = []
 
@@ -63,7 +63,7 @@ def create_test_metadata_model(
 
     # if not any(values):
     return create_model(
-        name or 'TestMetadataModel', **fields, __base__=BaseMetadata
+        name or 'TestMetadataModel', **fields, __base__=BaseMetadataModel
     )
 
     # raise NotImplementedError("Values initialization not implemented yet")
@@ -80,7 +80,7 @@ def model_fields() -> List[Tuple[MetadataFieldType, Any]]:
 
 
 @pytest.fixture
-def metadata_model(model_name, model_fields) -> Type[BaseMetadata]:
+def metadata_model(model_name, model_fields) -> Type[BaseMetadataModel]:
     return create_test_metadata_model(
         name=model_name, metadata_fields=model_fields
     )

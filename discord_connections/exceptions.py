@@ -5,17 +5,17 @@ from dataclasses import dataclass
 class ClientError(Exception):
     @property
     def message(self):
-        return "Opps... Unknown error occurred!"
+        return "Client error occurred."
 
 
 @dataclass
 class RequestError(ClientError):
     status_code: int
-    msg: str
+    response_message: str
 
     @property
     def message(self):
-        return f"{self.status_code} returned: {self.msg}"
+        return f"Error occurred during request.\nStatus code: {self.status_code}\nResponse: {self.response_message}"
 
 
 # class GetOAuthTokenError(RequestError):

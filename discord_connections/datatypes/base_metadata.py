@@ -1,7 +1,7 @@
 import json
 import re
 
-from typing import Optional, Any, TypeVar, Generic, get_args, Type
+from typing import Optional, Any, TypeVar, Generic, get_args, Type, Self
 
 from pydantic import BaseModel, Field, field_validator, ConfigDict, model_validator
 
@@ -49,7 +49,7 @@ class MetadataField(BaseModel, Generic[FieldType]):
     # TODO validate localisations
 
 
-class BaseMetadata(BaseModel):
+class BaseMetadataModel(BaseModel):
     platform_name: str = Field(...)
     platform_username: str = Field(default=None)
 
@@ -121,3 +121,24 @@ class BaseMetadata(BaseModel):
             })
 
         return fields
+
+    def to_metadata(self) -> dict[str, Any]:
+        platform_data = self.model_dump(exclude_none=True, include={'platform_name', 'platform_username'})
+
+        metadata_fields = {}
+        for field_name, field_info in self.model_fields.items():
+            if not issubclass(field_info.annotation, MetadataField):
+                continue
+            field = getattr(self, field_name)
+            if field.value is not None:
+                metadata_fields[field.key] = field.value
+
+        return {**platform_data, 'metadata': metadata_fields}
+
+    @classmethod
+    def from_metadata_response(cls, response: dict) -> Self:
+        return cls(
+            platform_name=response.get('platform_name'),
+            platform_username=response.get('platform_username'),
+            **response.get('metadata', {})
+        )
