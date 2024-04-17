@@ -90,7 +90,7 @@ class BaseMetadata(BaseModel):
         return data
 
     @classmethod
-    def to_schema(cls) -> str:
+    def to_schema(cls) -> list[dict]:
         """Returns a schema of fields as a json string.
         """
         fields = []
@@ -120,4 +120,4 @@ class BaseMetadata(BaseModel):
                 **field_info.default.model_dump(exclude_none=True, mode="json")
             })
 
-        return json.dumps(fields)
+        return fields

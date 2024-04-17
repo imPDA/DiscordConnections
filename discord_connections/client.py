@@ -12,7 +12,9 @@ OAUTH_URL = API_URL + "/oauth2"
 AUTH_URL = OAUTH_URL + "/authorize"
 TOKEN_URL = OAUTH_URL + "/token"
 ME_URL = OAUTH_URL + "/@me"
-ROLE_CONNECTION_URL = ME_URL + "applications/%d/role-connection"
+
+ROLE_CONNECTIONS_METADATA_URL = API_URL + "users/@me/applications/{application_id}/role-connection"
+ROLE_CONNECTIONS_CONFIGURE_METADATA_URL = API_URL + "applications/{application_id}/role-connections/metadata"
 
 
 class DiscordConnections:
@@ -23,8 +25,6 @@ class DiscordConnections:
         self.redirect_uri = redirect_uri
         self.client_secret = client_secret
         self.discord_token = discord_token
-
-        self.role_connection_url = ROLE_CONNECTION_URL % self.client_id
 
     # TODO headers and data to kwargs
     async def _request(
@@ -63,7 +63,6 @@ class DiscordConnections:
 
     async def get_oauth_token(self, code: str) -> DiscordToken:
         # URL = 'https://discord.com/api/v10/oauth2/token'
-
         headers = {
             'Content-Type': 'application/x-www-form-urlencoded',
         }
@@ -80,7 +79,6 @@ class DiscordConnections:
 
     async def refresh_token(self, token: DiscordToken) -> DiscordToken:
         # URL = 'https://discord.com/api/v10/oauth2/token'
-
         headers = {
             'Content-Type': 'application/x-www-form-urlencoded',
         }
@@ -104,39 +102,35 @@ class DiscordConnections:
         return user_data
 
     async def push_metadata(self, token: DiscordToken, metadata: BaseMetadata) -> None:
-        # URL = f'https://discord.com/api/v10/users/@me/applications/{self.client_id}/role-connection'
-        URL = self.role_connection_url
-
         headers = {
             'Authorization': f'Bearer {token.access_token}',
             'Content-Type': 'application/json',
         }
 
         await self._request(
-            'PUT', URL, headers=headers, json=metadata.model_dump_json(exclude_none=True)
+            'PUT', ROLE_CONNECTIONS_METADATA_URL.format(applciation_id=self.client_id),
+            headers=headers, json=metadata.model_dump_json(exclude_none=True)
         )
 
     async def get_metadata(self, token: DiscordToken) -> dict:
-        # URL = f'https://discord.com/api/v10/users/@me/applications/{self.client_id}/role-connection'
-        URL = self.role_connection_url
-
         headers = {
             'Authorization': f'Bearer {token.access_token}',
         }
 
-        return await self._request('GET', URL, headers=headers)
+        return await self._request(
+            'GET', ROLE_CONNECTIONS_METADATA_URL.format(applciation_id=self.client_id),
+            headers=headers
+        )
 
     async def register_metadata_schema(self, metadata: BaseMetadata) -> dict:
-        # URL = f'https://discord.com/api/v10/applications/{self.client_id}/role-connections/metadata'
-        URL = self.role_connection_url + "/metadata"
-
         headers = {
             'Content-Type': 'application/json',
             'Authorization': f'Bot {self.discord_token}',
         }
 
         return await self._request(
-            'PUT', URL, headers=headers, json=metadata.to_schema()
+            'PUT', ROLE_CONNECTIONS_CONFIGURE_METADATA_URL.format(application_id=self.client_id),
+            headers=headers, json=metadata.to_schema()
         )
 
 
