@@ -107,9 +107,14 @@ class DiscordConnections:
             'Content-Type': 'application/json',
         }
 
+        metadata = {
+            **metadata.model_dump(exclude_none=True, include={'platform_name', 'platform_username'}),
+            'metadata': metadata.model_dump(exclude_none=True, exclude={'platform_name', 'platform_username'})
+        }
+
         await self._request(
             'PUT', ROLE_CONNECTIONS_METADATA_URL.format(application_id=self.client_id),
-            headers=headers, json=metadata.model_dump(exclude_none=True)
+            headers=headers, json=metadata
         )
 
     async def get_metadata(self, token: DiscordToken) -> dict:
