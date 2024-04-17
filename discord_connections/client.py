@@ -109,7 +109,7 @@ class DiscordConnections:
 
         await self._request(
             'PUT', ROLE_CONNECTIONS_METADATA_URL.format(application_id=self.client_id),
-            headers=headers, json=metadata.model_dump_json(exclude_none=True)
+            headers=headers, json=metadata.model_dump(exclude_none=True)
         )
 
     async def get_metadata(self, token: DiscordToken) -> dict:
